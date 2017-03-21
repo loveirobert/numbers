@@ -44,6 +44,7 @@ module.exports = function (dirname, next, onError) {
         }
         learned.push(sum);
       }
+      console.log(`I've seen a lot of ` + dirname.split('/')[1])
       next(learned);
     });
   });
