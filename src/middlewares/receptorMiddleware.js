@@ -2,7 +2,7 @@ const fs = require('fs');
 const getPixels = require('get-pixels');
 const async = require('async');
 
-module.exports = function (dirname, next, onError) {
+module.exports = function (dirname, next, onError, testFlag) {
   fs.readdir(dirname, (err, filenames) => {
     if (err) {
       onError(err);
@@ -13,8 +13,8 @@ module.exports = function (dirname, next, onError) {
       getPixels(dirname + '/' + filename, (err, pixels) => {
         if (err) return onError(err);
         const out = [];
-        for(let y = 0; y < 28; y++) {
-          for(let x = 0; x < 28; x++) {
+        for (let y = 0; y < 28; y++) {
+          for (let x = 0; x < 28; x++) {
             const pixel = [];
             const pointer = pixels.offset + (pixels.stride[0] * x) + (pixels.stride[1] * y);
             for(let i = 0; i < 4; i++) {
@@ -29,23 +29,17 @@ module.exports = function (dirname, next, onError) {
           console.log(out.slice(i, i + 28).join(''), i)
         }
         */
+        if (testFlag) {
+          const testObject = {};
+          testObject[filename] = out;
+          return cb(null, testObject);
+        }
         cb(null, out);
       });
     }, (err, results) => {
       if (err) return onError(err);
-      const learned = [];
-      const resultsLength = results.length;
-      const experimentLength = results[0].length;
-
-      for (let j = 0; j < experimentLength; j++) {
-        let sum = 0;
-        for (let i = 0; i < resultsLength; i++) {
-          sum += results[i][j];
-        }
-        learned.push(sum);
-      }
       console.log(`I've seen a lot of ` + dirname.split('/')[1])
-      next(learned);
+      next(results);
     });
   });
 }

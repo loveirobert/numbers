@@ -12,6 +12,7 @@
     "array-normalize": "^1.0.1",
     "async": "^2.1.5",
     "get-pixels": "^3.3.0",
+    "jsonfile": "^2.4.0",
     "ndarray": "^1.0.18"
   }
 }
