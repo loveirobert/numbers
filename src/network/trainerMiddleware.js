@@ -1,3 +1,12 @@
+const jsonfile = require('jsonfile');
+const fs = require('fs');
+const NumberNeuron = require('../network/NumberNeuron.js');
+const TRAIN_MEMORY = 'data/learned/trained.json';
+
+let trainMemory;
+if (fs.existsSync(TRAIN_MEMORY)) {
+  trainMemory = jsonfile.readFileSync(TRAIN_MEMORY);
+}
 
 module.exports = function (neurons, tests, cb) {
   const max = tests.length - 1;
@@ -7,27 +16,60 @@ module.exports = function (neurons, tests, cb) {
   let success = 0;
   let failure = 0;
 
-  while(testCount < 10000) {
+  let successTrained = 0;
+  let failureTrained = 0;
+
+  const failureMap = {
+    0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+  }
+  const trainedFailureMap = {
+    0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+  }
+
+
+  const hiddenNeurons = [];
+  for (let i = 0; i <= 9; i++) {
+    let initialWeights = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+    if (trainMemory && trainMemory[i]) initialWeights = trainMemory[i];
+    let newHiddenNeuron = new NumberNeuron(initialWeights);
+    hiddenNeurons.push(newHiddenNeuron);
+  }
+
+  while(testCount < 100) {
     const toTest = Math.floor(Math.random() * (max - min) + min);
     const testKey = Object.keys(tests[toTest])[0];
     const out = tests[toTest][testKey];
-
     const recognized = {number: -1, probability: -1};
+    const outputArray = [];
 
     neurons.forEach((n, i) => {
       n.setInputs(out);
       const output = n.getOutput();
-
       if (output > recognized.probability) { recognized.number = i; recognized.probability = output; };
-
       console.log(i, output);
+      outputArray.push(output);
     });
 
     const number = Number(testKey.split('_')[1]);
 
+    /* 1st hidden layer training */
+    hiddenNeurons[number].setInputs(outputArray);
+    const hiddenOutput = hiddenNeurons[number].getSingleOutput();
+    if (hiddenOutput !== number) {
+      hiddenNeurons[number].train();
+      trainedFailureMap[number]++;
+      failureTrained++;
+    } else {
+      successTrained++;
+    }
+    /* 1st hidden layer training */
+
     console.log(recognized, number);
 
     recognized.number === number ? success++ : failure++;
+    if (recognized.number !== number) {
+      failureMap[number]++;
+    }
 
     for(let i = 0; i < 783; i += 28) {
       console.log(out.slice(i, i + 28).join(''), i)
@@ -36,8 +78,21 @@ module.exports = function (neurons, tests, cb) {
     testCount++;
   }
 
-  console.log('Success: ', success, ' Failure: ', failure);
+  console.log('Success (non-trained): ', success, ' Failure (non-trained): ', failure);
+  console.log('Success (trained): ', successTrained, ' Failure (trained): ', failureTrained);
 
+  console.log(failureMap);
+  console.log(trainedFailureMap);
+
+
+  if (!trainMemory) {
+    const trainMap = {};
+    hiddenNeurons.forEach((hn, i) => {
+      console.log(i, hn.getWeights());
+      trainMap[i] = hn.getWeights();
+    });
+    jsonfile.writeFile(TRAIN_MEMORY, trainMap);
+  }
   //console.log('testKey: ', testKey);
   //console.log('Number: ', number);
 }

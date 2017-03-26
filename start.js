@@ -122,6 +122,19 @@ async.waterfall([
       if (!normalizedLearned) jsonfile.writeFile('data/learned/normalizedLearned.json', generatedNormalizedLearned);
       generateNeuronsMiddleware(normalizedLearned || generatedNormalizedLearned, cb);
     },
+
+    (neurons, cb) => {
+      receptorMiddleware('data/realTest',
+      (res) => {
+        testMemory = res;
+        trainerMiddleware(neurons, testMemory, cb);
+        console.log('do something with neurons and test data');
+      }, (err) => {
+        console.error('Test file read error: ', err);
+      }, true);
+    }
+
+    /*
     (neurons, cb) => {
       if (!testMemory) {
         receptorMiddleware('data/test',
@@ -131,12 +144,6 @@ async.waterfall([
             testMemory = res;
           }
           trainerMiddleware(neurons, testMemory, cb);
-          // const out = res[8000][Object.keys(res[8000])[0]]
-          /*
-          for(let i = 0; i < 783; i += 28) {
-            console.log(out.slice(i, i + 28).join(''), i)
-          }
-          */
           console.log('do something with neurons and test data');
         }, (err) => {
           console.error('Test file read error: ', err);
@@ -145,6 +152,8 @@ async.waterfall([
         trainerMiddleware(neurons, testMemory, cb);
       }
     }
+    */
+
   ],
   (err, res) => {
     console.log('ready');
