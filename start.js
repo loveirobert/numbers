@@ -2,16 +2,23 @@ const receptorMiddleware = require('./src/middlewares/receptorMiddleware');
 const normalizeMiddleware = require('./src/middlewares/normalizeMiddleware');
 const vectorSumMiddleware = require('./src/middlewares/vectorSumMiddleware');
 const generateNeuronsMiddleware = require('./src/middlewares/generateNeuronsMiddleware');
+const trainerMiddleware = require('./src/network/trainerMiddleware');
 
 const async = require('async');
 const jsonfile = require('jsonfile');
 
 const fs = require('fs');
 const NORMALIZED_LEARNED_MEMORY = 'data/learned/normalizedLearned.json';
+const TEST_MEMORY = 'data/learned/test.json';
 
 let normalizedLearned;
 if (fs.existsSync(NORMALIZED_LEARNED_MEMORY)) {
   normalizedLearned = jsonfile.readFileSync(NORMALIZED_LEARNED_MEMORY);
+}
+
+let testMemory;
+if (fs.existsSync(TEST_MEMORY)) {
+  testMemory = jsonfile.readFileSync(TEST_MEMORY);
 }
 
 async.waterfall([
@@ -118,7 +125,17 @@ async.waterfall([
     (neurons, cb) => {
       receptorMiddleware('data/test',
       (res) => {
-        console.log(res[9000]);
+        if (!testMemory) {
+          jsonfile.writeFile('data/learned/test.json', res);
+          testMemory = res;
+        }
+        trainerMiddleware(neurons, testMemory, cb);
+        // const out = res[8000][Object.keys(res[8000])[0]]
+        /*
+        for(let i = 0; i < 783; i += 28) {
+          console.log(out.slice(i, i + 28).join(''), i)
+        }
+        */
         console.log('do something with neurons and test data');
       }, (err) => {
         console.error('Test file read error: ', err);
