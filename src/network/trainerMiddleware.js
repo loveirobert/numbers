@@ -5,7 +5,7 @@ const TRAIN_MEMORY = 'data/learned/trained.json';
 
 let trainMemory;
 if (fs.existsSync(TRAIN_MEMORY)) {
-  trainMemory = jsonfile.readFileSync(TRAIN_MEMORY);
+  // trainMemory = jsonfile.readFileSync(TRAIN_MEMORY);
 }
 
 module.exports = function (neurons, tests, cb) {
@@ -35,7 +35,7 @@ module.exports = function (neurons, tests, cb) {
     hiddenNeurons.push(newHiddenNeuron);
   }
 
-  while(testCount < 100) {
+  while(testCount < 200) {
     const toTest = Math.floor(Math.random() * (max - min) + min);
     const testKey = Object.keys(tests[toTest])[0];
     const out = tests[toTest][testKey];
@@ -46,13 +46,23 @@ module.exports = function (neurons, tests, cb) {
       n.setInputs(out);
       const output = n.getOutput();
       if (output > recognized.probability) { recognized.number = i; recognized.probability = output; };
-      console.log(i, output);
       outputArray.push(output);
     });
 
     const number = Number(testKey.split('_')[1]);
 
+    hiddenNeurons.forEach((hn, i) => {
+      hn.setInputs(outputArray);
+      const singleOutPut = hn.getSingleOutput();
+      console.log('SINGLE OUTPUT', i, singleOutPut);
+      if (i == singleOutPut && i !== number) {
+        console.log(singleOutPut + ' is not a ' + number);
+        hn.train();
+      }
+    });
+
     /* 1st hidden layer training */
+    /*
     hiddenNeurons[number].setInputs(outputArray);
     const hiddenOutput = hiddenNeurons[number].getSingleOutput();
     if (hiddenOutput !== number) {
@@ -62,18 +72,19 @@ module.exports = function (neurons, tests, cb) {
     } else {
       successTrained++;
     }
+    */
     /* 1st hidden layer training */
-
-    console.log(recognized, number);
 
     recognized.number === number ? success++ : failure++;
     if (recognized.number !== number) {
       failureMap[number]++;
     }
 
+
     for(let i = 0; i < 783; i += 28) {
       console.log(out.slice(i, i + 28).join(''), i)
     }
+
 
     testCount++;
   }
@@ -88,11 +99,11 @@ module.exports = function (neurons, tests, cb) {
   if (!trainMemory) {
     const trainMap = {};
     hiddenNeurons.forEach((hn, i) => {
-      console.log(i, hn.getWeights());
       trainMap[i] = hn.getWeights();
     });
     jsonfile.writeFile(TRAIN_MEMORY, trainMap);
   }
+
   //console.log('testKey: ', testKey);
   //console.log('Number: ', number);
 }

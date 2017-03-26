@@ -21,13 +21,14 @@ module.exports = class NumberNeuron {
     return output;
   }
 
-  getSingleOutput(expected) {
+  getSingleOutput() {
     let recognized = {number: -1, probability: -1};
     this.inputs.forEach((n, i) => {
       const output = n * this.weights[i];
       if (output > recognized.probability) { recognized.number = i; recognized.probability = output; };
     });
     this.recognized = recognized;
+    console.log(recognized);
     return recognized.number;
   }
 
