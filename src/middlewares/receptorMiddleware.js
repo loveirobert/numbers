@@ -20,7 +20,7 @@ module.exports = function (dirname, next, onError, testFlag) {
             for(let i = 0; i < 4; i++) {
               pixel.push(pixels.data[pointer + (pixels.stride[2] * i)]);
             }
-            out.push(pixel[0] > 130 ? 1 : 0);
+            out.push(pixel[0] > 50 ? 1 : 0);
           }
         }
         /*

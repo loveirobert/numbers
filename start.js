@@ -128,8 +128,9 @@ async.waterfall([
       const toTrain = Object.keys(allNumbers);
       const trainObjects = [];
       toTrain.forEach(tt => {
-        const vectors = allNumbers[tt];
-        vectors.forEach(v => {
+        const vectors = _.shuffle(allNumbers[tt]);
+        vectors.forEach((v, i) => {
+          //if (i > 500) return;
           const output = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           output[tt] = 1;
           trainObjects.push({
@@ -138,24 +139,37 @@ async.waterfall([
           });
         });
       });
-      console.log('Training starts ...');
-      net.train(_.shuffle(trainObjects).slice(0, 2000),{
-        errorThresh: 0.001,  // error threshold to reach
+
+      console.log('Training starts ...', trainObjects.length);
+
+      net.train(_.shuffle(trainObjects),{
+        errorThresh: 0.0015,  // error threshold to reach
         iterations: 20000,   // maximum training iterations
         log: true,           // console.log() progress periodically
         logPeriod: 1,       // number of iterations between logging
         learningRate: 0.1    // learning rate
       });
-      console.log(0, net.run(allNumbers[0][0]))
-      console.log(1, net.run(allNumbers[1][0]))
-      console.log(2, net.run(allNumbers[2][0]))
-      console.log(3, net.run(allNumbers[3][0]))
-      console.log(4, net.run(allNumbers[4][0]))
-      console.log(5, net.run(allNumbers[5][0]))
-      console.log(6, net.run(allNumbers[6][0]))
-      console.log(7, net.run(allNumbers[7][0]))
-      console.log(8, net.run(allNumbers[8][0]))
-      console.log(9, net.run(allNumbers[9][0]))
+
+      _.shuffle(testMemory).forEach(rt => {
+        const testKey = Object.keys(rt)[0];
+        const testVector = rt[testKey];
+        const probabilities = net.run(testVector);
+        const estimation = probabilities.indexOf(Math.max(...probabilities));
+        for(let i = 0; i < 783; i += 28) {
+          console.log(testVector.slice(i, i + 28).join(''), i)
+        }
+        console.log('I say this is: ', estimation);
+      });
+
+      /*
+      receptorMiddleware('data/realTest',
+      (res) => {
+
+      }, (err) => {
+        console.error('Test file read error: ', err);
+      }, true);
+      */
+
       cb(null, null);
     }
 
