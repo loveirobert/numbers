@@ -13,6 +13,7 @@ const fs = require('fs');
 const NORMALIZED_LEARNED_MEMORY = 'data/learned/normalizedLearned.json';
 const TEST_MEMORY = 'data/learned/test.json';
 const ALL_NUMBERS = 'data/learned/numbers.json';
+const BEST_NET = 'data/learned/network.json';
 
 let normalizedLearned;
 if (fs.existsSync(NORMALIZED_LEARNED_MEMORY)) {
@@ -27,6 +28,11 @@ if (fs.existsSync(TEST_MEMORY)) {
 let allNumbers;
 if (fs.existsSync(ALL_NUMBERS)) {
   allNumbers = jsonfile.readFileSync(ALL_NUMBERS);
+}
+
+let bestNet;
+if (fs.existsSync(BEST_NET)) {
+  bestNet = jsonfile.readFileSync(BEST_NET);
 }
 
 async.waterfall([
@@ -122,33 +128,44 @@ async.waterfall([
 
     (numbers, cb) => {
       if (!allNumbers) allNumbers = numbers;
-      var net = new brain.NeuralNetwork({
-        hiddenLayers: [40, 20]
-      });
-      const toTrain = Object.keys(allNumbers);
-      const trainObjects = [];
-      toTrain.forEach(tt => {
-        const vectors = _.shuffle(allNumbers[tt]);
-        vectors.forEach((v, i) => {
-          //if (i > 500) return;
-          const output = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-          output[tt] = 1;
-          trainObjects.push({
-            input: v,
-            output
+
+      let net;
+
+      net = new brain.NeuralNetwork();
+      net.fromJSON(bestNet);
+
+      if (!net) {
+        net = new brain.NeuralNetwork({
+          hiddenLayers: [100]
+        });
+        const toTrain = Object.keys(allNumbers);
+        const trainObjects = [];
+        toTrain.forEach(tt => {
+          const vectors = _.shuffle(allNumbers[tt]);
+          vectors.forEach((v, i) => {
+            if (i > 2500) return;
+            const output = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            output[tt] = 1;
+            trainObjects.push({
+              input: v,
+              output
+            });
           });
         });
-      });
 
-      console.log('Training starts ...', trainObjects.length);
+        console.log('Training starts ...', trainObjects.length);
 
-      net.train(_.shuffle(trainObjects),{
-        errorThresh: 0.0015,  // error threshold to reach
-        iterations: 20000,   // maximum training iterations
-        log: true,           // console.log() progress periodically
-        logPeriod: 1,       // number of iterations between logging
-        learningRate: 0.1    // learning rate
-      });
+        net.train(_.shuffle(trainObjects),{
+          errorThresh: 0.0007,  // error threshold to reach
+          iterations: 20000,   // maximum training iterations
+          log: true,           // console.log() progress periodically
+          logPeriod: 1,       // number of iterations between logging
+          learningRate: 0.2,    // learning rate
+          momentum: 0.4
+        });
+      }
+
+      let errors = 0;
 
       _.shuffle(testMemory).forEach(rt => {
         const testKey = Object.keys(rt)[0];
@@ -158,70 +175,17 @@ async.waterfall([
         for(let i = 0; i < 783; i += 28) {
           console.log(testVector.slice(i, i + 28).join(''), i)
         }
-        console.log('I say this is: ', estimation);
+        const reality = Number(testKey.split('_')[1]);
+        if (reality !== Number(estimation)) errors ++;
+        console.log('I say this is: ', estimation, ' The reality is: ', reality);
       });
 
-      /*
-      receptorMiddleware('data/realTest',
-      (res) => {
+      console.log('Test number: ' + testMemory.length + ' Error rate: ' + (errors / testMemory.length).toFixed(2));
 
-      }, (err) => {
-        console.error('Test file read error: ', err);
-      }, true);
-      */
+      const netJson = net.toJSON();
 
       cb(null, null);
     }
-
-    /*
-    (thingsIveSeen, cb) => {
-      if (normalizedLearned) return cb(null, null);
-      vectorSumMiddleware(thingsIveSeen, cb);
-    },
-    (learned, cb) => {
-      if (normalizedLearned) return cb(null, null);
-      normalizeMiddleware(learned, cb);
-    },
-    (generatedNormalizedLearned, cb) => {
-      if (!normalizedLearned) jsonfile.writeFile('data/learned/normalizedLearned.json', generatedNormalizedLearned);
-      generateNeuronsMiddleware(normalizedLearned || generatedNormalizedLearned, cb);
-    },
-
-    */
-
-    /*
-    (neurons, cb) => {
-      receptorMiddleware('data/realTest',
-      (res) => {
-        testMemory = res;
-        trainerMiddleware(neurons, testMemory, cb);
-        console.log('do something with neurons and test data');
-      }, (err) => {
-        console.error('Test file read error: ', err);
-      }, true);
-    }
-    */
-
-    /*
-    (neurons, cb) => {
-      if (!testMemory) {
-        receptorMiddleware('data/test',
-        (res) => {
-          if (!testMemory) {
-            jsonfile.writeFile('data/learned/test.json', res);
-            testMemory = res;
-          }
-          trainerMiddleware(neurons, testMemory, cb);
-          console.log('do something with neurons and test data');
-        }, (err) => {
-          console.error('Test file read error: ', err);
-        }, true);
-      } else {
-        trainerMiddleware(neurons, testMemory, cb);
-      }
-    }
-    */
-
   ],
   (err, res) => {
     console.log('ready');
